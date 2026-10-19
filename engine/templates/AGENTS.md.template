@@ -1,0 +1,34 @@
+# AGENTS.md — {{PROJECT}} 工程铁律（gen_project.py 生成）
+
+> 本文件由引擎立项时生成，任何 agent（含冷启动 spawn 的 worker）进入本工程干活前自动受其约束。
+> 修改本文件须走 exchange 补正（exwrite 取号）+ user 拍板，禁止执行中顺手改。
+
+## 工程铁律
+
+{{IRON_RULES}}
+
+## 通用纪律（每个项目都带）
+
+1. **先读后写**：改任何文件前先读全文，禁止凭想象 patch；
+2. **交付走 exwrite**：`python exwrite.py --dir <project>/exchange ...`（exwrite = 交换协议写侧取号脚本，未部署时可跳过取号、直接写 exchange/artifacts/），status 状态机 draft→done→accepted/rejected；
+3. **改动留锚**：改代码/配置前 `.bak-<主题>-<日期>` 备份，改后机械验证 + 落盘实证；
+4. **测试是真相**：agent 说"通过"不算通过，跑 pytest/实测看输出；
+5. **决策不上桌**：执行者遇到决策性问题（范围变更/方案分叉/新依赖）→ 停下 escalate user/hermes，不自作主张；
+6. **点到为止**：只做卡 body 和本文件授权范围内的事，不顺手扩大范围；
+7. **交付前 frontmatter 双验证**：任何交付物落盘后、收工前，执行两步机械验证——①`yaml.safe_load` 能解析 frontmatter ②引擎同款正则 `^status:\s*(\S+)` 能读出 status 且值在词表内（工作产物 done / 验收产物 accepted/rejected）。验证不过不收工；frontmatter 禁止加任何行首前缀（如 `|`）。产物路径/文件名以卡 body 写明的为准，禁止自由命名。
+
+## 本项目 Skill 池（charter 时敲定；执行 agent 只在此池内挑选，不从全局联想）
+
+{{SKILL_POOL}}
+
+### 通用可选 skill（领域层预置，所有项目默认带；按步骤需要挑选，不必每步都加载）
+
+- 委派 CLI 编码（qwen-code/Codex CLI 长任务外包）: software-development/coding-agent-delegation
+
+**挑选规则（每个执行卡动手前第一步）**：读本池 → 判断本步骤属于哪个环节（设计/开发/测试/素材/部署…）→ 点名列出你将加载的 skill 并一句话说明理由 → skill_view 加载后再动手。池中没有适用的就明说"本步骤无适用 skill"，禁止硬凑。
+
+## 本项目要点
+
+- 项目目录: {{PROJECT_DIR}}
+- 交换区: {{PROJECT_DIR}}/exchange/（artifacts/ verdicts/ ledger.md）
+- 开工先读 materials/MANIFEST.md（若存在）

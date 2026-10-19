@@ -1,0 +1,127 @@
+# 设计方案流程模板 — 借鉴 athena empathetic-design skill（2026-08-24 六项优化 #1）
+#
+# 方法论来源：《非暴力沟通》的产品设计应用 —— 核心命题：
+#   「用户说的不等于用户需要的」，观察→感受→需要→请求 四要素翻译系统。
+#   映射到引擎流程：共情调研（剥离观察与评判）→ 需要定义（区分策略与需要）
+#   → 方案构思（基于需要而非用户策略设计）→ 设计评审（四要素完备性）→ 收官。
+#
+# 引擎范式对齐（沿 mechanism-fix-engine-verify-wait / template-feature 已验证约定）：
+#   - 相邻两个 dispatch 之间必须有 wait 屏障（防过早派发，t_679a7f43 实证）
+#   - 每个 dispatch 产物配 verify 或 wait 轮询（on_fail 打回重做）
+#   - decision 步骤双 key options（A + 同意），兼容 user 两种拍板习惯
+#   - dispatch 步骤 id 带 ds_ 前缀，避免与 executor_dispatch 全局映射表撞键
+#
+# 用法：项目立项后在面板「流程模板」绑定本模板；适合新功能/新产品的前期设计阶段。
+
+meta:
+  title: "设计方案流程"
+  description: "共情调研 → 需要定义 → 方案构思 → 设计评审。源自 NVC 四要素的设计前期流程，适合从用户反馈出发做新方案。"
+  category: design
+  source: "built-in（借鉴 empathetic-design skill：NVC 观察→感受→需要→请求）"
+
+name: template-design
+title: "设计方案流程（PROJECT_PLACEHOLDER）"
+max_iterations: 20
+
+steps:
+  # ---- 立项段 ----
+  - id: user_approve
+    type: decision
+    description: "设计立项拍板（审阅 spec：目标用户 / 场景 / 成功标准）"
+    question: "PROJECT_PLACEHOLDER 设计立项？（确认 → 进入共情调研；驳回 → 继续讨论）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/spec.md"
+    options:
+      - key: A
+        label: 确认立项
+        next: ds_charter
+      - key: 同意
+        label: 确认立项
+        next: ds_charter
+      - key: B
+        label: 驳回修改
+        next: user_approve
+    on_reject: user_approve
+    next: ds_charter
+
+  - id: ds_charter
+    type: dispatch
+    description: "生成 charter 四件套（charter/STATE/ROLLBACK/INCIDENT-RESPONSE）"
+    executor: executor_dispatch.py
+    next: review
+
+  - id: review
+    type: wait
+    description: "双审齐（玄武技术审 + 端木运营审回执落盘；agent 无 token 时可跳过）"
+    next: ds_empathize
+    card_done: ["@upstream"]  # 锚点：上游 dispatch 卡 done 即通过（t_a1f33cfc）
+
+  # ---- 共情段：观察 → 感受 ----
+  - id: ds_empathize
+    type: dispatch
+    description: "共情调研：收集用户原话与行为，剥离评判只留观察；标注每条背后的感受（挫败/困惑/期待…）。产物 002-empathy-insights.md"
+    executor: executor_dispatch.py
+    next: ds_insight_wait
+
+  - id: ds_insight_wait
+    type: wait
+    description: "等待共情洞察简报落盘（洞察定稿才派需要定义卡）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/002-empathy-insights.md"
+    next: ds_needs
+
+  # ---- 需要段：感受 → 需要 ----
+  - id: ds_needs
+    type: dispatch
+    description: "需要定义：把用户提的策略翻译回底层需要（自主性/效率/清晰…）；按「普遍×核心」两维排优先级。产物 003-needs-definition.md"
+    executor: executor_dispatch.py
+    next: ds_needs_wait
+
+  - id: ds_needs_wait
+    type: wait
+    description: "等待需要定义落盘（需要定稿才派方案卡）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/003-needs-definition.md"
+    next: ds_concept
+
+  # ---- 方案段：需要 → 请求/方案 ----
+  - id: ds_concept
+    type: dispatch
+    description: "方案构思：基于已定义的需要设计方案（不限于用户最初提的策略）；每个方案点注明满足哪条需要。产物 004-design-concept.md"
+    executor: executor_dispatch.py
+    max_retry: 2
+    next: ds_review
+
+  - id: ds_review
+    type: verify
+    description: "设计评审（NVC 四要素完备性：观察无评判 / 感受有依据 / 需要非策略 / 方案可测试）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/005-design-review.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: ds_concept
+    next: closing
+
+  # ---- 收官段 ----
+  - id: closing
+    type: decision
+    description: "收官拍板（设计评审通过，user 确认方案定稿）"
+    question: "PROJECT_PLACEHOLDER 设计收官？（005 评审通过；同意定稿 / 需返工）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/002-empathy-insights.md"
+      - "PROJECT_PLACEHOLDER/exchange/003-needs-definition.md"
+      - "PROJECT_PLACEHOLDER/exchange/004-design-concept.md"
+      - "PROJECT_PLACEHOLDER/exchange/005-design-review.md"
+    options:
+      - key: A
+        label: 同意定稿
+        next: done
+      - key: 同意
+        label: 同意定稿
+        next: done
+      - key: B
+        label: 需返工
+        next: ds_concept
+    on_reject: ds_concept
+    next: done
+
+  - id: done
+    type: done
+    description: "流程完成：设计方案定稿且经四要素评审通过"

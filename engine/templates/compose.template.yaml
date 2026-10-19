@@ -1,0 +1,33 @@
+# compose.template.yaml — flow-engine-doker 项目级编排模板
+# gen_project.py 开项目时按此模板生成 <项目>/docker/compose.yaml；项目可在此基础上扩展。
+# 设计原则（002-design-doc.md §0）：
+#   P1 单一真源：本文件 = 项目容器拓扑唯一定义；scripts/doker-*.sh 只做薄封装转发。
+#   P3 主机零依赖：源码 volume 挂载（..:/workspace），IDE 仍编辑主机源码。
+# 安全约束（002 §2.5 玄武审重点）：
+#   - 网络默认 bridge，禁 host。
+#   - volume 白名单：只挂项目根 + .doker-cache + 引擎目录(只读) + 主机 .hermes(只读)，不挂用户主目录/kanban DB 所在盘根。
+#   - 不以 root 跑长期服务（本模板 sleep infinity 不涉服务；服务型项目实施时加 user 字段）。
+
+services:
+  main:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ..:/workspace                       # P3：源码挂载
+      - doker_pip_cache:/workspace/.doker-cache/pip  # buildkit cache mount 兜底
+      # ENGINE_DIR_MOUNT 占位行：gen_project 生成时替换为 "- <引擎目录>:/engine:ro"
+      # （doker 模式下执行器脚本在引擎目录，容器内经 /engine 访问 — 002 §2.2 补丁）
+      - "{{ENGINE_DIR_MOUNT}}"
+      # HERMES_HOME_MOUNT 占位行：gen_project 生成时替换为 "- <主机 .hermes>:/host-hermes:ro"
+      # （executor_dispatch 经 kanban_client 读主机看板 DB — 09-01 enginefix2 首航补丁）
+      - "{{HERMES_HOME_MOUNT}}"
+    working_dir: /workspace
+    command: sleep infinity                 # keep-alive；服务型项目改本服务启动命令
+    environment:
+      - PIP_CACHE_DIR=/workspace/.doker-cache/pip
+      # kanban 客户端经 /host-hermes 直连主机看板 DB（09-01 enginefix2 首航补丁）
+      - HERMES_KANBAN_HOME=/host-hermes
+
+volumes:
+  doker_pip_cache:                          # 命名卷跨 build 复用 pip 包（S1/S3 性能）

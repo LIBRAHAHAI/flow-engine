@@ -1,0 +1,37 @@
+INFO:     Started server process [6108]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8650 (Press CTRL+C to quit)
+INFO:     127.0.0.1:13062 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13073 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13073 - "GET /assets/index-hgB--rp6.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13074 - "GET /assets/index-5KWQGSoC.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13073 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13074 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13074 - "GET /favicon.ico HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13075 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13075 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13092 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13092 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13093 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13093 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13093 - "GET /api/kanban/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13104 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13104 - "GET /api/kanban/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13104 - "GET /api/flow-templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13105 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13105 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13105 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13130 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13130 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13160 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13170 - "OPTIONS /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13171 - "OPTIONS /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13171 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13170 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13172 - "OPTIONS /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13172 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13172 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13172 - "GET /api/flows HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13172 - "GET /api/flows HTTP/1.1" 200 OK
+^C

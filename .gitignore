@@ -1,0 +1,16 @@
+# .gitignore — flow-engine
+__pycache__/
+*.pyc
+*.bak*
+.pytest_cache/
+.doker-cache/
+.omh/
+logs/
+instances/
+exchange/
+.quota_cache/
+node_modules/
+dist/
+.vite/
+.env
+*.lnk

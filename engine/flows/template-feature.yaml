@@ -1,0 +1,128 @@
+# 功能迭代流程模板 — 借鉴业界成熟 feature 工作流（2026-08-23 项目化改造 P3）
+#
+# 工作流借鉴：双轨 Scrum + Shape Up 的混合裁剪（需求澄清 → 方案 shaping
+#   → 分批实施 → 验收 → UAT），映射到引擎六类步骤：
+#   拍板(方案) → charter → 双审 → 设计 → 实施+验收(两批) → 收官
+#
+# 引擎范式对齐（沿 mechanism-fix-engine-verify-wait 已验证约定）：
+#   - 相邻两个 dispatch 之间必须有 wait 屏障（防过早派发，t_679a7f43 实证）
+#   - 每个 dispatch 配 verify（on_fail 打回重做）
+#   - decision 步骤双 key options（A + 同意），兼容 user 两种拍板习惯
+#   - dispatch 步骤 id 带 ft_ 前缀，避免与 executor_dispatch 全局映射表撞键
+#
+# 用法：项目立项后在面板「流程模板」绑定本模板（POST /api/flows/{id}/template）。
+
+meta:
+  title: "功能迭代流程"
+  description: "方案设计 → 分批实施 → 集成验收 → 用户试用。适合在已有产品上叠加新功能。"
+  category: feature
+  source: "built-in（借鉴双轨 Scrum + Shape Up）"
+
+name: template-feature
+title: "功能迭代流程（PROJECT_PLACEHOLDER）"
+max_iterations: 20
+
+steps:
+  # ---- 立项段 ----
+  - id: user_approve
+    type: decision
+    description: "迭代方案拍板（审阅 spec：用户价值 / 范围 / 验收标准）"
+    question: "PROJECT_PLACEHOLDER 功能迭代立项？（确认 → 生成四件套进入设计；驳回 → 继续讨论）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/spec.md"
+    options:
+      - key: A
+        label: 确认立项
+        next: ft_charter
+      - key: 同意
+        label: 确认立项
+        next: ft_charter
+      - key: B
+        label: 驳回修改
+        next: user_approve
+    on_reject: user_approve
+    next: ft_charter
+
+  - id: ft_charter
+    type: dispatch
+    description: "生成 charter 四件套（charter/STATE/ROLLBACK/INCIDENT-RESPONSE）"
+    executor: executor_dispatch.py
+    next: review
+
+  - id: review
+    type: wait
+    description: "双审齐（玄武技术审 + 端木运营审回执落盘；agent 无 token 时可跳过）"
+    next: ft_design
+    card_done: ["@upstream"]  # 锚点：上游 dispatch 卡 done 即通过（t_a1f33cfc）
+
+  # ---- 设计段 ----
+  - id: ft_design
+    type: dispatch
+    description: "方案设计：交互稿/接口契约/数据结构/分批计划（第一批最小可用，第二批增强）"
+    executor: executor_dispatch.py
+    next: ft_design_wait
+
+  - id: ft_design_wait
+    type: wait
+    description: "等待设计文档落盘（设计定稿才派实施卡）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/002-design-doc.md"
+    next: ft_impl1
+
+  # ---- 实施段一批：核心链路 ----
+  - id: ft_impl1
+    type: dispatch
+    description: "第一批实施：核心链路端到端跑通（宁窄勿全，先见真章）"
+    executor: executor_dispatch.py
+    max_retry: 2
+    next: ft_verify1
+
+  - id: ft_verify1
+    type: verify
+    description: "一批验收（核心场景实测通过 + 产物落盘 status 达标）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/003-implement-batch1-report.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: ft_impl1
+    next: ft_impl2
+
+  # ---- 实施段二批：完善与打磨 ----
+  - id: ft_impl2
+    type: dispatch
+    description: "第二批实施：边界情况 / 错误提示 / 文案打磨 / 文档补全"
+    executor: executor_dispatch.py
+    max_retry: 2
+    next: ft_verify2
+
+  - id: ft_verify2
+    type: verify
+    description: "二批验收（集成验收：全量回归 + 边界用例通过）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/005-implement-batch2-report.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: ft_impl2
+    next: closing
+
+  # ---- 收官段 ----
+  - id: closing
+    type: decision
+    description: "收官拍板（两批实施全部验收通过，用户试用确认）"
+    question: "PROJECT_PLACEHOLDER 功能迭代收官？（003 一批 + 005 二批双验收通过；同意 / 需返工）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/003-implement-batch1-report.md"
+      - "PROJECT_PLACEHOLDER/exchange/005-implement-batch2-report.md"
+    options:
+      - key: A
+        label: 同意收官
+        next: done
+      - key: 同意
+        label: 同意收官
+        next: done
+      - key: B
+        label: 需返工
+        next: ft_impl2
+    on_reject: ft_impl2
+    next: done
+
+  - id: done
+    type: done
+    description: "流程完成：新功能上线且经集成验收"

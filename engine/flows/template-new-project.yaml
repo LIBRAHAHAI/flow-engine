@@ -1,0 +1,83 @@
+# 标准流程模板 — 新项目全流程（通用模板，用户"开引擎 + 项目名"即用）
+#
+# 用法（用户入口，M5）：
+#   用户："开引擎 <项目名>" → 本模板复制为 flows/<项目>.yaml
+#   → 引擎从 charter 步骤接入 → 自动跑完 立项→评审→拍板→实施→验收→收官
+#
+# 设计原则（对齐 032/flow-engine-build 已验证流程）：
+#   - 立项(决策) → 评审(wait) → 拍板(决策) → 实施(dispatch) → 验收(verify) → 收官(决策)
+#   - 每个实施步骤配 verify（on_fail 打回，自动重做）
+#   - 拍板点 2 个（立项 + 收官），user 只按 2 次
+
+name: new-project
+title: "新项目全流程（标准模板）"
+max_iterations: 20
+
+steps:
+  # ---- 立项段：讨论 → 拍板 → 四件套（拍板后才生成 charter）----
+  - id: discuss
+    type: discuss
+    description: "立项讨论（grill-me 设计树访谈：缘由/受众/功能/约束/成功/范围/时间）"
+    spec_file: "exchange/spec.md"
+    project_dir: "PROJECT_PLACEHOLDER"
+    next: user_approve
+
+  - id: user_approve
+    type: decision
+    description: "立项拍板（审阅 spec：确认立项 / 驳回修改）"
+    question: "PROJECT_PLACEHOLDER 立项？（确认 spec → 生成四件套；驳回 → 继续讨论）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/spec.md"
+    on_reject: discuss
+    next: charter
+
+  - id: charter
+    type: dispatch
+    description: "生成 charter 四件套（基于已确认 spec：charter/STATE/ROLLBACK/INCIDENT-RESPONSE）"
+    executor: executor_dispatch.py
+    next: review
+
+  - id: review
+    type: wait
+    description: "双审齐（玄武技术审 + 端木运营审回执落盘；agent 无 token 时可跳过）"
+    next: plan
+    card_done: ["@upstream"]  # 锚点：上游 dispatch 卡 done 即通过（t_a1f33cfc）
+
+  - id: plan
+    type: dispatch
+    description: "实施方案（草案 → 路线图 → 拆任务）"
+    executor: executor_dispatch.py
+    next: implement
+
+  # ---- 实施段（模板：单实施+单验收；复杂项目可复制多组）----
+  - id: plan_wait
+    type: wait
+    description: "plan 卡收口（D5 屏障：相邻 dispatch 间隔 wait，R5）"
+    next: implement
+    card_done: ["@upstream"]
+
+  - id: implement
+    type: dispatch
+    description: "实施（按 proposal 拆任务执行）"
+    executor: executor_dispatch.py
+    next: verify
+
+  - id: verify
+    type: verify
+    description: "实施验收（产物落盘 + status 达标）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/artifacts/*RESULT_PLACEHOLDER.md"
+    status_in: [accepted, closed]
+    on_fail: implement
+    next: closing
+
+  # ---- 收官段 ----
+  - id: closing
+    type: decision
+    description: "收官拍板"
+    question: "PROJECT_PLACEHOLDER 收官确认？（同意 / 需返工）"
+    on_reject: verify
+    next: done
+
+  - id: done
+    type: done
+    description: "流程完成"

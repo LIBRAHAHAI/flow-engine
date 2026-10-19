@@ -1,0 +1,129 @@
+# 缺陷修复流程模板 — 借鉴业界成熟 bugfix 工作流（2026-08-23 项目化改造 P3）
+#
+# 工作流借鉴：GitHub/GitLab 缺陷处理标准流（report → reproduce → root cause
+#   → fix → regression test → review → release），映射到引擎六类步骤：
+#   拍板(修复方案) → charter → 双审 → 复现+回归用例 → 修复 → 验收
+#   → 回归扫描 → 二次验收 → 收官
+#
+# 引擎范式对齐（沿 mechanism-fix-engine-verify-wait 已验证约定）：
+#   - 相邻两个 dispatch 之间必须有 wait 屏障（防过早派发，t_679a7f43 实证）
+#   - 每个 dispatch 配 verify（on_fail 打回重做）
+#   - decision 步骤双 key options（A + 同意），兼容 user 两种拍板习惯
+#   - dispatch 步骤 id 带 bf_ 前缀，避免与 executor_dispatch 全局映射表撞键
+#
+# 用法：项目立项后在面板「流程模板」绑定本模板（POST /api/flows/{id}/template），
+#   绑定即改写 flows/<项目>.yaml（自动备份），后续分派/监察/验收按本模板推进。
+
+meta:
+  title: "缺陷修复流程"
+  description: "复现确认 → 根因定位 → 最小修复 → 回归扫描。适合已知缺陷的定点修复，两道验收防线。"
+  category: bugfix
+  source: "built-in（借鉴 GitHub/GitLab 缺陷处理标准流）"
+
+name: template-bugfix
+title: "缺陷修复流程（PROJECT_PLACEHOLDER）"
+max_iterations: 15
+
+steps:
+  # ---- 立项段 ----
+  - id: user_approve
+    type: decision
+    description: "修复方案拍板（审阅缺陷报告：现象 / 根因 / 修复思路 / 影响面）"
+    question: "PROJECT_PLACEHOLDER 缺陷修复立项？（确认 → 生成四件套并开修；驳回 → 补充根因分析）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/spec.md"
+    options:
+      - key: A
+        label: 确认立项
+        next: bf_charter
+      - key: 同意
+        label: 确认立项
+        next: bf_charter
+      - key: B
+        label: 驳回修改
+        next: user_approve
+    on_reject: user_approve
+    next: bf_charter
+
+  - id: bf_charter
+    type: dispatch
+    description: "生成 charter 四件套（charter/STATE/ROLLBACK/INCIDENT-RESPONSE）"
+    executor: executor_dispatch.py
+    next: review
+
+  - id: review
+    type: wait
+    description: "双审齐（玄武技术审 + 端木运营审回执落盘；agent 无 token 时可跳过）"
+    next: bf_repro
+    card_done: ["@upstream"]  # 锚点：上游 dispatch 卡 done 即通过（t_a1f33cfc）
+
+  # ---- 复现段（先证明缺陷存在，再动手修）----
+  - id: bf_repro
+    type: dispatch
+    description: "缺陷复现 + 回归用例先行（先写出能暴露缺陷的失败测试，锁定根因）"
+    executor: executor_dispatch.py
+    next: bf_repro_wait
+
+  - id: bf_repro_wait
+    type: wait
+    description: "等待复现报告落盘（复现确认后才派修复卡）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/002-bugfix-repro-report.md"
+    next: bf_fix
+
+  # ---- 修复段 ----
+  - id: bf_fix
+    type: dispatch
+    description: "最小化修复（只动与根因相关的代码；回归用例转绿）"
+    executor: executor_dispatch.py
+    max_retry: 2
+    next: bf_verify
+
+  - id: bf_verify
+    type: verify
+    description: "修复验收（失败测试转绿 + 原有测试不回归 + 无越界改动）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/003-bugfix-implement-report.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: bf_fix
+    next: bf_regression
+
+  # ---- 回归段（防按下葫芦浮起瓢）----
+  - id: bf_regression
+    type: dispatch
+    description: "同类缺陷回归扫描（同模式代码排查 + 全量测试跑一遍）"
+    executor: executor_dispatch.py
+    next: bf_verify2
+
+  - id: bf_verify2
+    type: verify
+    description: "回归验收（全量测试绿 + 无同类隐患遗留）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/005-bugfix-regression-report.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: bf_regression
+    next: closing
+
+  # ---- 收官段 ----
+  - id: closing
+    type: decision
+    description: "收官拍板（修复 + 回归双验收通过）"
+    question: "PROJECT_PLACEHOLDER 缺陷修复收官？（003 修复 + 005 回归双验收通过；同意 / 需返工）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/003-bugfix-implement-report.md"
+      - "PROJECT_PLACEHOLDER/exchange/005-bugfix-regression-report.md"
+    options:
+      - key: A
+        label: 同意收官
+        next: done
+      - key: 同意
+        label: 同意收官
+        next: done
+      - key: B
+        label: 需返工
+        next: bf_fix
+    on_reject: bf_fix
+    next: done
+
+  - id: done
+    type: done
+    description: "流程完成：缺陷根治且有回归防线"

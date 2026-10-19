@@ -1,0 +1,130 @@
+# 调研验证流程模板 — 借鉴业界成熟 research 工作流（2026-08-23 项目化改造 P3）
+#
+# 工作流借鉴：精益创业 BML（Build-Measure-Learn）+ 学术文献综述法，
+#   映射到引擎六类步骤：
+#   拍板(调研计划) → charter → 双审 → 资料综述 → 实验/对比验证
+#   → 结论报告 → 验收 → 收官
+#
+# 引擎范式对齐（沿 mechanism-fix-engine-verify-wait 已验证约定）：
+#   - 相邻两个 dispatch 之间必须有 wait 屏障（防过早派发，t_679a7f43 实证）
+#   - 每个 dispatch 配 verify（on_fail 打回重做）
+#   - decision 步骤双 key options（A + 同意），兼容 user 两种拍板习惯
+#   - dispatch 步骤 id 带 rs_ 前缀，避免与 executor_dispatch 全局映射表撞键
+#
+# 用法：项目立项后在面板「流程模板」绑定本模板（POST /api/flows/{id}/template）。
+#   适用：技术选型、竞品分析、可行性验证类项目（产出是结论与建议，非代码）。
+
+meta:
+  title: "调研验证流程"
+  description: "资料综述 → 对比实验 → 结论建议。适合技术选型 / 竞品分析 / 可行性验证。"
+  category: research
+  source: "built-in（借鉴精益创业 BML + 文献综述法）"
+
+name: template-research
+title: "调研验证流程（PROJECT_PLACEHOLDER）"
+max_iterations: 12
+
+steps:
+  # ---- 立项段 ----
+  - id: user_approve
+    type: decision
+    description: "调研计划拍板（审阅 spec：要回答的问题 / 判断标准 / 时间盒）"
+    question: "PROJECT_PLACEHOLDER 调研立项？（确认 → 生成四件套开始综述；驳回 → 收窄问题）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/spec.md"
+    options:
+      - key: A
+        label: 确认立项
+        next: rs_charter
+      - key: 同意
+        label: 确认立项
+        next: rs_charter
+      - key: B
+        label: 驳回修改
+        next: user_approve
+    on_reject: user_approve
+    next: rs_charter
+
+  - id: rs_charter
+    type: dispatch
+    description: "生成 charter 四件套（charter/STATE/ROLLBACK/INCIDENT-RESPONSE）"
+    executor: executor_dispatch.py
+    next: review
+
+  - id: review
+    type: wait
+    description: "双审齐（玄武技术审 + 端木运营审回执落盘；agent 无 token 时可跳过）"
+    next: rs_survey
+    card_done: ["@upstream"]  # 锚点：上游 dispatch 卡 done 即通过（t_a1f33cfc）
+
+  # ---- 综述段 ----
+  - id: rs_survey
+    type: dispatch
+    description: "资料综述：候选方案全景 + 各自优劣矩阵（有来源引用，不编造）"
+    executor: executor_dispatch.py
+    next: rs_survey_wait
+
+  - id: rs_survey_wait
+    type: wait
+    description: "等待综述报告落盘（综述完成才设计验证实验）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/002-survey-report.md"
+    next: rs_experiment
+
+  # ---- 验证段 ----
+  - id: rs_experiment
+    type: dispatch
+    description: "对比实验 / PoC：按判断标准实测候选方案（小成本快速试错）"
+    executor: executor_dispatch.py
+    max_retry: 2
+    next: rs_verify1
+
+  - id: rs_verify1
+    type: verify
+    description: "实验验收（数据可复现 + 结论有证据支撑，无拍脑袋）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/003-experiment-report.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: rs_experiment
+    next: rs_conclusion
+
+  # ---- 结论段 ----
+  - id: rs_conclusion
+    type: dispatch
+    description: "结论报告：推荐方案 + 理由 + 风险 + 下一步行动建议"
+    executor: executor_dispatch.py
+    max_retry: 2
+    next: rs_verify2
+
+  - id: rs_verify2
+    type: verify
+    description: "结论验收（回答了 spec 全部问题 + 建议可执行）"
+    artifact: "PROJECT_PLACEHOLDER/exchange/005-conclusion-report.md"
+    status_in: [accepted, closed]
+    max_retry: 2
+    on_fail: rs_conclusion
+    next: closing
+
+  # ---- 收官段 ----
+  - id: closing
+    type: decision
+    description: "收官拍板（实验 + 结论双验收通过）"
+    question: "PROJECT_PLACEHOLDER 调研收官？（003 实验 + 005 结论双验收通过；同意 / 需返工）"
+    context_files:
+      - "PROJECT_PLACEHOLDER/exchange/003-experiment-report.md"
+      - "PROJECT_PLACEHOLDER/exchange/005-conclusion-report.md"
+    options:
+      - key: A
+        label: 同意收官
+        next: done
+      - key: 同意
+        label: 同意收官
+        next: done
+      - key: B
+        label: 需返工
+        next: rs_conclusion
+    on_reject: rs_conclusion
+    next: done
+
+  - id: done
+    type: done
+    description: "流程完成：调研结论可指导决策"

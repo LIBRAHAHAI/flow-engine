@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* 设计 token —— 来自 006 方案 §2.4 / 007 §6 follow-up #2 */
+@theme {
+  --color-bg-1: hsl(222, 18%, 9%);
+  --color-bg-2: hsl(222, 16%, 13%);
+  --color-bg-3: hsl(222, 14%, 17%);
+  --color-bg-4: hsl(222, 13%, 22%);
+  --color-fg-1: hsl(220, 20%, 92%);
+  --color-fg-2: hsl(220, 12%, 65%);
+  --color-fg-3: hsl(220, 10%, 45%);
+  --color-line: hsl(222, 14%, 22%);
+  --color-accent: hsl(212, 90%, 60%);
+  --color-accent-dim: hsl(212, 80%, 50%);
+  --color-success: hsl(150, 60%, 50%);
+  --color-warning: hsl(38, 92%, 55%);
+  --color-error: hsl(0, 70%, 60%);
+  --color-border: hsl(222, 14%, 22%);
+  /* v2 新增（007 follow-up #2）—— Sidebar 专用 token */
+  --color-sidebar-bg: hsl(222, 16%, 13%);
+  --color-sidebar-border: hsl(222, 14%, 22%);
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui,
+    sans-serif;
+  background-color: var(--color-bg-1);
+  color: var(--color-fg-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 等宽字体用于 instance id / log 摘要（006 §5.2） */
+.font-mono-id {
+  font-family: "JetBrains Mono", "Consolas", "SF Mono", monospace;
+}
+
+/* 细滚动条（暗色） */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 4px;
+}

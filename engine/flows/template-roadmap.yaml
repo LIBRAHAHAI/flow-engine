@@ -1,0 +1,65 @@
+# 标准路线图模板 — 引擎驱动派发的依据（M5 补全, 2026-08-16）
+#
+# 用途：新项目"开引擎"时，根据项目规模自动生成路线图（roadmap.md），
+# 引擎按路线图各阶段派发推进。本模板定义"阶段 → 步骤"的标准映射。
+#
+# 路线图文件结构（引擎读取 roadmap.md 的 steps 生成 flow 模板）：
+#   roadmap.md 中的每个 ## 阶段 = flow 模板中的一个 [dispatch → wait → verify] 三元组
+#
+# 标准阶段（可按项目增删）：
+#   P0 立项（charter 四件套）→ P1 双审 → P2 拍板 → P3 实施(可多轮) → P4 验收 → P5 收官
+
+name: roadmap-standard
+title: "标准路线图（引擎派发依据）"
+version: "1.0"
+# 每阶段标准产物后缀（阶段名 → 产物文件）
+artifacts:
+  charter: "charter.md"
+  review: "artifacts/<nnn>-xuanwu-tech-review.md"  # 08-30 notify-retrofit: 回执走 kanban comment，产物按 EX v2 落 artifacts/
+  proposal: "<nnn>-<flow>-proposal.md"
+  implement: "<nnn>-<flow>-implement-report.md"
+  retire: "<nnn>-<flow>-retire-report.md"
+  closing: "<nnn>-<flow>-closing-report.md"
+
+# 阶段定义（引擎按此生成 flow 模板步骤）
+stages:
+  - id: charter
+    name: "立项文件"
+    action: dispatch
+    desc: "起草 charter 四件套（charter/STATE/ROLLBACK/INCIDENT-RESPONSE）"
+    next: review
+
+  - id: review
+    name: "双审"
+    action: wait
+    desc: "玄武技术审 + 端木运营审回执落盘"
+    next: user_approve
+
+  - id: user_approve
+    name: "立项拍板"
+    action: decision
+    desc: "user 拍立项（A 接受 / B 驳回）"
+    next: implement
+
+  - id: implement
+    name: "实施"
+    action: dispatch
+    desc: "按 proposal 拆分任务执行（可配置多轮：试水/确认/批量）"
+    next: verify
+
+  - id: verify
+    name: "验收"
+    action: verify
+    desc: "产物落盘 + status 达标；不合格自动打回 implement"
+    next: closing
+
+  - id: closing
+    name: "收官拍板"
+    action: decision
+    desc: "user 收官确认（可交付 / 需返工）"
+    next: done
+
+  - id: done
+    name: "完成"
+    action: done
+    desc: "流程完成"

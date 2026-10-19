@@ -1,0 +1,68 @@
+# dispatch_profiles.yaml — 引擎派工表（数据化）
+#
+# 真相源：本文件。executor_dispatch.py 启动时加载；YAML 缺失/损坏时代码内置
+# fallback（executor_dispatch.py 顶部 STEP_ASSIGNEE / STEP_GOAL）生效并打印告警。
+#
+# 规则：step_assignee / step_goal 的键 = 项目前缀化的 step id（防撞键，如
+# bugfix 模板的 bf_* 前缀）；裸通用名不入表。
+#
+# ⚠️ assignee 必须是你环境中可 spawn 的真实 agent profile 名。
+# 推荐的角色分工（可按你的多 agent 团队自行改名）：
+#   default  = 本体/后端/架构（负责实施类步骤）
+#   reviewer = 独立验收角色（负责 verify 类步骤，与实施者分离，验收才客观）
+#
+# 下方给出内置流程模板（engine/flows/template-*.yaml）的默认派工表。
+# 项目个性化目标：在 step_goal 段按「项目前缀 + step id」追加条目即可覆盖。
+
+default_assignee:
+  # 未列出的项目 → 全部步骤用此默认执行者
+  "*": default
+
+step_assignee:
+  # ---- template-bugfix（缺陷修复）----
+  bf_charter: default
+  bf_repro: default
+  bf_fix: default
+  bf_regression: default
+  bf_verify: reviewer
+  bf_verify2: reviewer
+  # ---- 通用段（template-new-project 等）----
+  charter: default
+  plan: default
+  implement: default
+  verify: reviewer
+  # ---- template-research（调研）----
+  rs_charter: default
+  rs_survey: default
+  rs_experiment: default
+  rs_conclusion: default
+  rs_verify1: reviewer
+  rs_verify2: reviewer
+  # ---- template-design（设计）----
+  ds_charter: default
+  ds_empathize: default
+  ds_needs: default
+  ds_concept: default
+  ds_review: reviewer
+
+step_goal:
+  # 未列入的步骤：executor_dispatch.py 内置通用目标生效。
+  # 需要项目个性化时，仿照下例追加（键 = 项目前缀化 step id）：
+  #
+  # myproj_charter: |
+  #   生成 myproj 的 charter 四件套，锚定 exchange/spec.md 的目标/约束/
+  #   成功标准，落盘 exchange/。产物 frontmatter status=done。
+  bf_verify: |
+    验收：核对上游交付物存在性与 frontmatter status；对照该项目 charter 的
+    成功标准逐条实测。全部达标 → 写验收报告并置 accepted；
+    有问题 → 置 rejected 并附问题清单（引擎会自动打回重做）。
+  ds_review: |
+    设计评审：方案完整性 / 技术可行性 / 与需求清单对齐度三维审查；
+    通过置 accepted，不达标置 rejected 并列具体问题。
+  rs_verify1: |
+    调研报告验收：来源可溯、结构完整、结论有据；通过置 accepted。
+
+step_skills:
+  # 步骤未列入 → 空 fallback，执行 agent 自行按卡内指令检索。
+  # 可在此为步骤挂载技能名列表，如：
+  # verify: [verification-before-completion]
